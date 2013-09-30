@@ -15,4 +15,9 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += \
+    test.cpp \
+    gost.cpp
+
+HEADERS += \
+    gost.h

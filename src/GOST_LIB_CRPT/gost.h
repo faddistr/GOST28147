@@ -15,5 +15,5 @@ typedef union
 } GOST_Data_Part;
 
 
-void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key );
+void GOST_Crypt_32_3_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key);
 #endif // GOST_H

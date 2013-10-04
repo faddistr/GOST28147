@@ -30,12 +30,16 @@ uint32_t GOST_Key[8];
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    GOST_Data_Part DATA;
+    GOST_Data_Part DATA[2];
 
     memcpy(GOST_Key,GOST_Key_d,sizeof(GOST_Key));
-    memcpy(&DATA.full,Data_O,sizeof(DATA));
-    GOST_Crypt_32_3_Cicle(&DATA,Gost_Table,GOST_Key);
+    memcpy(&DATA,Data_O,sizeof(Data_O));
+    //DATA[1]=DATA[0];
+    GOST_Crypt_32_3_Cicle(&DATA[0],Gost_Table,GOST_Key);
+    GOST_Crypt_32_3_Cicle(&DATA[1],Gost_Table,GOST_Key);
 
+    GOST_Crypt_32_P_Cicle(&DATA[0],Gost_Table,GOST_Key);
+    GOST_Crypt_32_P_Cicle(&DATA[1],Gost_Table,GOST_Key);
 
     //GOST_Crypt_Step(&DATA,gost_table,&GOST_Key);
     //GOST_Key++;

@@ -10,21 +10,22 @@ void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_K
         uint8_t parts[4];
     } GOST_Data_Part_sum;
     GOST_Data_Part_sum S;
-
+    uint8_t tmp;
     //N1=Lo(DATA); N2=Hi(DATA)
-    S.full = (*DATA).half[_GOST_Data_Part_LoHalf]+*GOST_Key;//S=(N1+X)mod2^32
+    S.full = (uint32_t)((*DATA).half[_GOST_Data_Part_LoHalf]+*GOST_Key) ;//S=(N1+X)mod2^32
 
     for(uint8_t m=0; m<(_GOST_TABLE_NODES/2); m++)
     {
         //S(m)=H(m,S)
-        S.parts[m] = *(GOST_Table+(S.parts[m]&0x0F));//Low value
+        tmp=S.parts[m];
+        S.parts[m] = *(GOST_Table+(tmp&0x0F));//Low value
         GOST_Table+= _GOST_TABLE_MAX_NODE_VALUE;//next line in table
-        S.parts[m] |= (*(GOST_Table+((S.parts[m]&0xF0)>>4)))<<4;//Hi value
+        S.parts[m] |= (*(GOST_Table+((tmp&0xF0)>>4)))<<4;//Hi value
         GOST_Table+= _GOST_TABLE_MAX_NODE_VALUE;//next line in table
 
     }
 
-    S.full = _rotl(S.full,11);//S=Rl(11,S); rol S,11
+    S.full = _lrotl(S.full,11);//S=Rl(11,S); rol S,11
     S.full = S.full^(*DATA).half[_GOST_Data_Part_HiHalf];//S XOR N2
 
     (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];//N2=N1
@@ -38,7 +39,8 @@ void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_K
 void GOST_Crypt_32_3_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
-    GOST_Data_Part TMP;
+    uint32_t TMP;
+    uint32_t *GOST_Key_tmp=GOST_Key;
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7,K0,K1,K2,K3,K4,K5,K6,K7,K0,K1,K2,K3,K4,K5,K6,K7,K7,K6,K5,K4,K3,K2,K1,K0
     for(k=0;k<_GOST_32_3P_CICLE_ITERS_K;k++)
@@ -48,21 +50,21 @@ void GOST_Crypt_32_3_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
             GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
             GOST_Key++;
         }
-        GOST_Key-=_GOST_32_3P_CICLE_ITERS_J;
+        GOST_Key=GOST_Key_tmp;
     }
 
-    GOST_Key+=_GOST_32_3P_CICLE_ITERS_J;
+    GOST_Key=GOST_Key_tmp+_GOST_32_3P_CICLE_ITERS_J;
 
     for (j=0;j<_GOST_32_3P_CICLE_ITERS_J;j++)
     {
-        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
         GOST_Key--;
+        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
     }
 //SWAP N1 <-> N2
-    TMP=*DATA;
+    TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
 
     (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
-    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP.half[_GOST_Data_Part_HiHalf];
+    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
 
 }
 
@@ -70,7 +72,7 @@ void GOST_Crypt_32_3_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
 void GOST_Crypt_32_P_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
-    GOST_Data_Part TMP;
+    uint32_t TMP;
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0
     for (j=0;j<_GOST_32_3P_CICLE_ITERS_J;j++)
@@ -83,17 +85,17 @@ void GOST_Crypt_32_P_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
     {
         for (j=0;j<_GOST_32_3P_CICLE_ITERS_J;j++)
         {
-            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
             GOST_Key--;
+            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
         }
         GOST_Key+=_GOST_32_3P_CICLE_ITERS_J;
     }
 
 //SWAP N1 <-> N2
-    TMP=*DATA;
+    TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
 
     (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
-    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP.half[_GOST_Data_Part_HiHalf];
+    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
 
 }
 

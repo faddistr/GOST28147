@@ -20,29 +20,54 @@ unsigned char GOST_Key_d[32] = {
 unsigned char Data_O[16] = {
     0x33, 0x33, 0x33, 0x33, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0x33, 0x33, 0x33, 0x33
 };
-
 //Data from real etalon cryptor:
+//imitta
+//unsigned char Imitta_e[_GOST_Imitta_Size] = {
+//    0x82, 0x96, 0x5E, 0x19, 0x5A, 0xC9, 0x27, 0x2C
+//};
+//rotate bytes acording to architecture of CPU
+unsigned char Imitta_Et[_GOST_Imitta_Size] ={
+    0x19, 0x5E, 0x96, 0x82,  0x2C, 0x27,  0xC9, 0x5A
+};
+
 //Simple replacement
-unsigned char Data_C_S[16] = {
-    0x56, 0xF5, 0xD7, 0x7D, 0x40, 0x1E, 0xBE, 0xD9, 0x73, 0xFE, 0x01, 0x18, 0x4E, 0x79, 0x05, 0x03
+//unsigned char Data_C_S_Et[16] = {
+//    0x56, 0xF5, 0xD7, 0x7D, 0x40, 0x1E, 0xBE, 0xD9, 0x73, 0xFE, 0x01, 0x18, 0x4E, 0x79, 0x05, 0x03
+//};
+//rotate bytes acording to architecture of CPU
+unsigned char Data_C_S_Et[16] = {
+    0x7D, 0xD7, 0xF5, 0x56, 0xD9, 0xBE, 0x1E, 0x40, 0x18, 0x01, 0xFE, 0x73, 0x03,  0x05, 0x79, 0x4E
 };
 uint32_t GOST_Key[8];
+uint8_t  Imitta[_GOST_Imitta_Size];
+uint8_t  Data_E[sizeof(Data_O)];
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
-    GOST_Data_Part DATA[2];
+   // QCoreApplication a(argc, argv);
+//Imitta test
+    memset(Imitta,_GOST_Def_Byte,_GOST_Imitta_Size);
+    GOST_Imitta(Data_O, Imitta, (uint32_t)sizeof(Data_O),Gost_Table,GOST_Key_d);
+    if (memcmp(Imitta,Imitta_Et,_GOST_Imitta_Size))
+    {
+        printf("Imitta test failed\r\n");
+        return -1;
+    }
+    printf("Imitta test passed\r\n");
+    memcpy(Data_E,Data_O,sizeof(Data_O));
+    GOST_Encrypt_SR(Data_E,sizeof(Data_E),_GOST_Crypt_SR_Encrypt,Gost_Table,GOST_Key_d);
+    if (memcmp(Data_C_S_Et,Data_E,sizeof(Data_E)))
+    {
+        printf("Simple replacement encryption test failed\r\n");
+        return -1;
+    }
+    printf("Simple replacement encryption test passed\r\n");
+    GOST_Encrypt_SR(Data_E,sizeof(Data_E),_GOST_Crypt_SR_Decrypt,Gost_Table,GOST_Key_d);
+    if (memcmp(Data_O,Data_E,sizeof(Data_E)))
+    {
+        printf("Simple replacement decryption test failed\r\n");
+        return -1;
+    }
+    printf("Simple decryption test passed\r\n");
 
-    memcpy(GOST_Key,GOST_Key_d,sizeof(GOST_Key));
-    memcpy(&DATA,Data_O,sizeof(Data_O));
-    //DATA[1]=DATA[0];
-    GOST_Crypt_32_3_Cicle(&DATA[0],Gost_Table,GOST_Key);
-    GOST_Crypt_32_3_Cicle(&DATA[1],Gost_Table,GOST_Key);
-
-    GOST_Crypt_32_P_Cicle(&DATA[0],Gost_Table,GOST_Key);
-    GOST_Crypt_32_P_Cicle(&DATA[1],Gost_Table,GOST_Key);
-
-    //GOST_Crypt_Step(&DATA,gost_table,&GOST_Key);
-    //GOST_Key++;
-    //GOST_Crypt_Step(&DATA,gost_table,&GOST_Key);
-    return a.exec();
+    return 0;
 }

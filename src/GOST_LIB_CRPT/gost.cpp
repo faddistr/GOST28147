@@ -145,7 +145,7 @@ void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Tabl
         Cur_Part_Size=min(_GOST_Part_Size,Size);
        // memset(Tmp, _GOST_Def_Byte, sizeof(Tmp));//have no sense in this mode
         memcpy(Tmp, Data,Cur_Part_Size);//align by _GOST_Part_Size bytes
-        if (Mode==_GOST_Crypt_SR_Encrypt)
+        if (Mode==_GOST_Mode_Encrypt)
         {
             GOST_Crypt_32_E_Cicle((GOST_Data_Part *) Tmp,GOST_Table,(uint32_t *) GOST_Key);
         } else
@@ -155,6 +155,57 @@ void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Tabl
         memcpy(Data,Tmp, Cur_Part_Size);
         Data+=Cur_Part_Size;
         Size-=Cur_Part_Size;
+    }
+
+}
+
+void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *GOST_Table, uint8_t *GOST_Key )
+{
+//"magic" consts from GOST for pseudorandom generator of gamma
+#define _GOST_C0 (uint32_t)(0x1010101)
+#define _GOST_C1 (uint32_t)(0x1010104)
+#define _GOST_ADC32(x,y,c) c=(uint32_t)(x+y); c+=( ( c<x ) | ( c<y ) )
+    GOST_Data_Part *S=(GOST_Data_Part *)Synchro;
+    GOST_Data_Part Tmp;
+    uint8_t i;
+    while(Size!=0)
+    {
+        (*S).half[_GOST_Data_Part_LoHalf]+=_GOST_C0;//_GOST_Data_Part_LoHalf
+        _GOST_ADC32((*S).half[_GOST_Data_Part_HiHalf],_GOST_C1,(*S).half[_GOST_Data_Part_HiHalf]);//_GOST_Data_Part_HiHalf
+        Tmp=*S;
+        GOST_Crypt_32_E_Cicle(&Tmp,GOST_Table,(uint32_t *)GOST_Key);
+        for (i=0;i<min(_GOST_Part_Size,Size);i++)
+        {
+            *Data^=Tmp.parts[i];
+            Data++;
+        }
+        Size-=i;
+    }
+}
+
+void GOST_Crypt_GF_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, bool Mode, uint8_t *GOST_Table, uint8_t *GOST_Key )
+{
+    GOST_Data_Part S;
+    uint8_t i,Tmp;
+    memcpy(&S,Synchro,_GOST_Synchro_Size);
+    while(Size!=0)
+    {
+        GOST_Crypt_32_E_Cicle(&S,GOST_Table,(uint32_t *)GOST_Key);//C32(S)
+        for (i=0;i<min(_GOST_Part_Size,Size);i++)//Data XOR S; S=Data;
+        {
+            if (Mode==_GOST_Mode_Encrypt)
+            {
+                *Data^=S.parts[i];
+                S.parts[i]=*Data;
+            } else
+            {
+                Tmp=*Data;
+                *Data^=S.parts[i];
+                S.parts[i]=Tmp;
+            }
+            Data++;
+        }
+        Size-=i;
     }
 
 }

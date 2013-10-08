@@ -4,7 +4,7 @@
 
 #define min(x,y) (x>y?y:x)
 //GOST basic Simple Step
-void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key )
+void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key, bool Last )
 {
     typedef  union
     {
@@ -29,17 +29,21 @@ void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_K
 
     S.full = _lrotl(S.full,11);//S=Rl(11,S); rol S,11
     S.full = S.full^(*DATA).half[_GOST_Data_Part_HiHalf];//S XOR N2
-
-    (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];//N2=N1
-    (*DATA).half[_GOST_Data_Part_LoHalf] = S.full;//N1=S
+    if (Last)
+    {
+        (*DATA).half[_GOST_Data_Part_HiHalf] = S.full; //N2=S
+    }else
+    {
+        (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];//N2=N1
+        (*DATA).half[_GOST_Data_Part_LoHalf] = S.full;//N1=S
+    }
 }
-
 
 //Basic 32-3 encryption algorithm of GOST
 void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
-    uint32_t TMP;
+  //  uint32_t TMP;
     uint32_t *GOST_Key_tmp=GOST_Key;
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7,K0,K1,K2,K3,K4,K5,K6,K7,K0,K1,K2,K3,K4,K5,K6,K7,K7,K6,K5,K4,K3,K2,K1,K0
@@ -47,24 +51,26 @@ void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
     {
         for (j=0;j<8;j++)
         {
-            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
+            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Next_Step ) ;
             GOST_Key++;
         }
         GOST_Key=GOST_Key_tmp;
     }
 
-    GOST_Key=GOST_Key_tmp+8;
+    GOST_Key=GOST_Key_tmp+7;
 
-    for (j=0;j<8;j++)
+    for (j=0;j<7;j++)
     {
+        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Next_Step ) ;
         GOST_Key--;
-        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
     }
-//SWAP N1 <-> N2
-    TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
+    GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Last_Step ) ;
 
-    (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
-    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
+//SWAP N1 <-> N2
+//    TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
+
+//    (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
+//    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
 
 }
 
@@ -72,30 +78,37 @@ void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
 void GOST_Crypt_32_D_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
-    uint32_t TMP;
+   // uint32_t TMP;
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0
     for (j=0;j<8;j++)
     {
-        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
+        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Next_Step ) ;
         GOST_Key++;
     }
 //GOST_Key offset =  GOST_Key + _GOST_32_3P_CICLE_ITERS_J
-    for(k=0;k<3;k++)
+    for(k=0;k<2;k++)
     {
         for (j=0;j<8;j++)
         {
             GOST_Key--;
-            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
+            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Next_Step ) ;
         }
         GOST_Key+=8;
     }
+    for (j=0;j<7;j++)
+    {
+        GOST_Key--;
+        GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Next_Step ) ;
+    }
+    GOST_Key--;
+    GOST_Crypt_Step(DATA, GOST_Table, GOST_Key,_GOST_Last_Step ) ;
 
 //SWAP N1 <-> N2
-    TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
+  //  TMP=(*DATA).half[_GOST_Data_Part_HiHalf];
 
-    (*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
-    (*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
+    //(*DATA).half[_GOST_Data_Part_HiHalf] = (*DATA).half[_GOST_Data_Part_LoHalf];
+    //(*DATA).half[_GOST_Data_Part_LoHalf] = TMP;
 
 }
 
@@ -108,7 +121,7 @@ void GOST_Imitta_16_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t 
     {
         for (j=0;j<8;j++)
         {
-            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key ) ;
+            GOST_Crypt_Step(DATA, GOST_Table, GOST_Key, _GOST_Next_Step) ;
             GOST_Key++;
         }
         GOST_Key-=8;

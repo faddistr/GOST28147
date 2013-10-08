@@ -5,7 +5,7 @@
 #define _GOST_TABLE_NODES 8
 #define _GOST_TABLE_MAX_NODE_VALUE 16
 #define _GOST_TABLE_SIZE _GOST_TABLE_NODES*_GOST_TABLE_MAX_NODE_VALUE//128
-//? mb etalon cryptor have errors
+
 #define _GOST_Data_Part_LoHalf 1//1
 #define _GOST_Data_Part_HiHalf 0//0
 #define _GOST_Def_Byte 0
@@ -22,6 +22,8 @@ typedef union
 #define _GOST_Synchro_Size  _GOST_Part_Size
 #define _GOST_Key_Size   32
 
+#define _GOST_Next_Step false
+#define _GOST_Last_Step true
 
 
 void GOST_Imitta(uint8_t *Open_Data, uint8_t *Imitta, uint32_t Size,  uint8_t *GOST_Table, uint8_t *GOST_Key );

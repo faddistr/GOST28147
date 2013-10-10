@@ -118,7 +118,7 @@ void GOST_Imitta_16_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t 
 {
 //K0,K1,K2,K3,K4,K5,K6,K7, K0,K1,K2,K3,K4,K5,K6,K7.
     uint8_t k,j;
-
+    uint32_t *GOST_Key_Beg=GOST_Key;
     for(k=0;k<2;k++)
     {
         for (j=0;j<8;j++)
@@ -126,7 +126,7 @@ void GOST_Imitta_16_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t 
             GOST_Crypt_Step(DATA, GOST_Table, *GOST_Key, _GOST_Next_Step) ;
             GOST_Key++;
         }
-        GOST_Key-=8;
+        GOST_Key=GOST_Key_Beg;
     }
 
 
@@ -137,19 +137,34 @@ void GOST_Imitta_16_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t 
 //for first round Imitta must set to _GOST_Def_Byte
 void GOST_Imitta(uint8_t *Open_Data,  uint8_t *Imitta, uint32_t Size, uint8_t *GOST_Table, uint8_t *GOST_Key )
 {
-    uint8_t i;
+
+    uint8_t Cur_Part_Size;
+    GOST_Data_Part *Imitta_Prep=(GOST_Data_Part *) Imitta;
+    GOST_Data_Part Open_Data_Prep;
+#if _GOST_ROT==1
+    (*Imitta_Prep).half[_GOST_Data_Part_LoHalf]=_SWAPW32((*Imitta_Prep).half[_GOST_Data_Part_LoHalf]);
+    (*Imitta_Prep).half[_GOST_Data_Part_HiHalf]=_SWAPW32((*Imitta_Prep).half[_GOST_Data_Part_HiHalf]);
+#endif
     while(Size!=0)
     {
-         for (i=0;i<min(_GOST_Part_Size,Size);i++)
-         {
-              *Imitta=(*Imitta)^(*Open_Data);
-              Open_Data++;
-              Imitta++;
-         }
-         Size-=i;
-         Imitta-=i;
-         GOST_Imitta_16_E_Cicle((GOST_Data_Part *)Imitta,GOST_Table,(uint32_t *)GOST_Key);
+        Cur_Part_Size=min(_GOST_Part_Size,Size);
+        Open_Data_Prep.half[_GOST_Data_Part_HiHalf]=0;
+        Open_Data_Prep.half[_GOST_Data_Part_LoHalf]=0;
+        memcpy(&Open_Data_Prep,Open_Data,Cur_Part_Size);
+#if _GOST_ROT==1
+        (*Imitta_Prep).half[_GOST_Data_Part_LoHalf]^=_SWAPW32(Open_Data_Prep.half[_GOST_Data_Part_LoHalf]);
+        (*Imitta_Prep).half[_GOST_Data_Part_HiHalf]^=_SWAPW32(Open_Data_Prep.half[_GOST_Data_Part_HiHalf]);
+#else
+        (*Imitta_Prep).half[_GOST_Data_Part_LoHalf]^=Open_Data_Prep.half[_GOST_Data_Part_LoHalf];
+        (*Imitta_Prep).half[_GOST_Data_Part_HiHalf]^=Open_Data_Prep.half[_GOST_Data_Part_HiHalf];
+#endif
+         Size-=Cur_Part_Size;
+         GOST_Imitta_16_E_Cicle(Imitta_Prep,GOST_Table,(uint32_t *)GOST_Key);
     }
+#if _GOST_ROT==1
+    (*Imitta_Prep).half[_GOST_Data_Part_LoHalf]=_SWAPW32((*Imitta_Prep).half[_GOST_Data_Part_LoHalf]);
+    (*Imitta_Prep).half[_GOST_Data_Part_HiHalf]=_SWAPW32((*Imitta_Prep).half[_GOST_Data_Part_HiHalf]);
+#endif
 }
 void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Table, uint8_t *GOST_Key )
 {

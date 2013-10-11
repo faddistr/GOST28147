@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <String.h>
 #include "gost.h"
-
+#define _SWAPW32(W) _lrotl(W,24)
 #define min(x,y) (x>y?y:x)
 //GOST basic Simple Step
 void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t GOST_Key, bool Last )

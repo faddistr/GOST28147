@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <String.h>
 #include "gost.h"
-#define _SWAPW32(W) _lrotl(W,24)
+#define _SWAPW32(W) ((W>>24) | (W<<24) | ((W>>8)&0xFF00) | ((W<<8)&0xFF0000))
+#define _SWAP_GOST_Data_Part(_GD) _GD.half[_GOST_Data_Part_N2_Half]=_SWAPW32(_GD.half[_GOST_Data_Part_N2_Half]); _GD.half[_GOST_Data_Part_N1_Half]=_SWAPW32(_GD.half[_GOST_Data_Part_N1_Half]);
 #define min(x,y) (x>y?y:x)
 //GOST basic Simple Step
 void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t GOST_Key, bool Last )
@@ -46,10 +47,7 @@ void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
     uint32_t *GOST_Key_tmp=GOST_Key;
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7, K0,K1,K2,K3,K4,K5,K6,K7, K0,K1,K2,K3,K4,K5,K6,K7, K7,K6,K5,K4,K3,K2,K1,K0
-#if _GOST_ROT==1
-    (*DATA).half[_GOST_Data_Part_N2_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N2_Half]);
-    (*DATA).half[_GOST_Data_Part_N1_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N1_Half]);
-#endif
+
     for(k=0;k<3;k++)
     {
         for (j=0;j<8;j++)
@@ -68,20 +66,12 @@ void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
         GOST_Key--;
     }
     GOST_Crypt_Step(DATA, GOST_Table, *GOST_Key,_GOST_Last_Step ) ;
-#if _GOST_ROT==1
-    (*DATA).half[_GOST_Data_Part_N2_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N2_Half]);
-    (*DATA).half[_GOST_Data_Part_N1_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N1_Half]);
-#endif
 }
 
 //Basic 32-P decryption algorithm of GOST, usefull only in SR mode
 void GOST_Crypt_32_D_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
-#if _GOST_ROT==1
-    (*DATA).half[_GOST_Data_Part_N2_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N2_Half]);
-    (*DATA).half[_GOST_Data_Part_N1_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N1_Half]);
-#endif
 //Key rotation:
 //K0,K1,K2,K3,K4,K5,K6,K7, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0, K7,K6,K5,K4,K3,K2,K1,K0
     for (j=0;j<8;j++)
@@ -106,10 +96,7 @@ void GOST_Crypt_32_D_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *
     }
     GOST_Key--;
     GOST_Crypt_Step(DATA, GOST_Table, *GOST_Key,_GOST_Last_Step ) ;
-#if _GOST_ROT==1
-    (*DATA).half[_GOST_Data_Part_N2_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N2_Half]);
-    (*DATA).half[_GOST_Data_Part_N1_Half]=_SWAPW32((*DATA).half[_GOST_Data_Part_N1_Half]);
-#endif
+
 }
 
 //Imitta
@@ -157,6 +144,7 @@ void GOST_Imitta(uint8_t *Open_Data,  uint8_t *Imitta, uint32_t Size, uint8_t *G
     (*Imitta_Prep).half[_GOST_Data_Part_N2_Half]=_SWAPW32((*Imitta_Prep).half[_GOST_Data_Part_N2_Half]);
 #endif
 }
+
 void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Table, uint8_t *GOST_Key )
 {
     uint8_t Cur_Part_Size;
@@ -168,8 +156,10 @@ void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Tabl
         Cur_Part_Size=min(_GOST_Part_Size,Size);
         memset(&Data_prep,_GOST_Def_Byte,sizeof(Data_prep));
         memcpy(&Data_prep,Data,Cur_Part_Size);
-
-
+#if _GOST_ROT==1
+        Data_prep.half[_GOST_Data_Part_N2_Half]=_SWAPW32(Data_prep.half[_GOST_Data_Part_N2_Half]);
+        Data_prep.half[_GOST_Data_Part_N1_Half]=_SWAPW32(Data_prep.half[_GOST_Data_Part_N1_Half]);
+#endif
         if (Mode==_GOST_Mode_Encrypt)
         {
             GOST_Crypt_32_E_Cicle(&Data_prep,GOST_Table,GOST_Key_pt);
@@ -177,13 +167,28 @@ void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Tabl
         {
             GOST_Crypt_32_D_Cicle(&Data_prep,GOST_Table,GOST_Key_pt);
         }
+#if _GOST_ROT==1
+        Data_prep.half[_GOST_Data_Part_N2_Half]=_SWAPW32(Data_prep.half[_GOST_Data_Part_N2_Half]);
+        Data_prep.half[_GOST_Data_Part_N1_Half]=_SWAPW32(Data_prep.half[_GOST_Data_Part_N1_Half]);
+#endif
         memcpy(Data,&Data_prep, Cur_Part_Size);
         Data+=Cur_Part_Size;
         Size-=Cur_Part_Size;
    }
 
 }
+#if _GOST_ROT==1
+void GOST_Crypt_G_PS(uint8_t *Synchro, uint8_t *GOST_Table, uint8_t *GOST_Key)
+{
+   uint32_t Tmp;
+   GOST_Data_Part *GOST_Synchro_prep= (GOST_Data_Part *) Synchro;
+   Tmp=(*GOST_Synchro_prep).half[_GOST_Data_Part_N2_Half];
+   (*GOST_Synchro_prep).half[_GOST_Data_Part_N2_Half]=(*GOST_Synchro_prep).half[_GOST_Data_Part_N1_Half];
+   (*GOST_Synchro_prep).half[_GOST_Data_Part_N1_Half]=Tmp;
 
+   GOST_Crypt_32_E_Cicle(GOST_Synchro_prep, GOST_Table, (uint32_t *) GOST_Key);
+}
+#endif
 void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *GOST_Table, uint8_t *GOST_Key )
 {
 //"magic" consts from GOST for pseudorandom generator of gamma
@@ -195,9 +200,15 @@ void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *
     uint8_t i;
     while(Size!=0)
     {
-        (*S).half[_GOST_Data_Part_N1_Half]+=_GOST_C0;//_GOST_Data_Part_LoHalf
+        (*S).half[_GOST_Data_Part_N1_Half]+=_GOST_C0;
         _GOST_ADC32((*S).half[_GOST_Data_Part_N2_Half],_GOST_C1,(*S).half[_GOST_Data_Part_N2_Half]);//_GOST_Data_Part_HiHalf
+#if _GOST_ROT==1
+        Tmp.half[_GOST_Data_Part_N2_Half]=_SWAPW32((*S).half[_GOST_Data_Part_N2_Half]);
+        Tmp.half[_GOST_Data_Part_N1_Half]=_SWAPW32((*S).half[_GOST_Data_Part_N1_Half]);
+#else
         Tmp=*S;
+#endif
+
         GOST_Crypt_32_E_Cicle(&Tmp,GOST_Table,(uint32_t *)GOST_Key);
         for (i=0;i<min(_GOST_Part_Size,Size);i++)
         {

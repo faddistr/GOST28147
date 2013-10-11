@@ -23,33 +23,29 @@ uint8_t Data_O[24] = {
 };
 //Data from real etalon cryptor:
 //imitta
-//unsigned char Imitta_e[_GOST_Imitta_Size] = {
-//    0x82, 0x96, 0x5E, 0x19, 0x5A, 0xC9, 0x27, 0x2C
-//};
-//rotate bytes acording to architecture of CPU
 uint8_t Imitta_Et[_GOST_Imitta_Size] ={
         0xD9, 0x8F, 0xEB, 0x04, 0x81, 0xF6, 0x2C, 0x41
 };
-
-//uint8_t Synchro_Et[_GOST_Synchro_Size] =
-//{
-//    0x2A, 0x80, 0xA7, 0xC3, 0xFF, 0xA8, 0xE3, 0x47
-//};
-//rotate bytes acording to architecture of CPU
+//synchro
 uint8_t Synchro_Et[_GOST_Synchro_Size] =
 {
     0xC3, 0xA7,0x80, 0x2A, 0x47, 0xE3, 0xA8, 0xFF
 };
 //Simple replacement
-//unsigned char Data_C_S_Et[16] = {
-//    0x56, 0xF5, 0xD7, 0x7D, 0x40, 0x1E, 0xBE, 0xD9, 0x73, 0xFE, 0x01, 0x18, 0x4E, 0x79, 0x05, 0x03
-//};
-//rotate bytes acording to architecture of CPU
 uint8_t Data_C_S_Et[24] = {
     0x12, 0xA2, 0x8E, 0x60, 0x5D, 0x76, 0xBF, 0xC9, 0xAF, 0x84, 0x67, 0x8A, 0xA5, 0xE8, 0xF7, 0xE8,
     0xDE, 0x8E, 0x29, 0x16, 0x19, 0xCB, 0xD2, 0x08
 };
-
+//Gamma
+unsigned char Data_C_G_Et[24] = {
+    0x8B, 0x39, 0x76, 0x8B, 0x52, 0xE3, 0x94, 0x1D, 0xEA, 0x22, 0xC7, 0x24, 0x86, 0x56, 0xA2, 0xCE,
+    0x11, 0x61, 0xF0, 0x07, 0x4B, 0xF8, 0xCA, 0x00
+};
+//Gamma with feedback
+unsigned char Data_C_GF_Et[24] = {
+    0x20, 0x36, 0xB4, 0x76, 0x29, 0x44, 0x36, 0xDE, 0xF1, 0x17, 0x0F, 0x02, 0x82, 0x40, 0x00, 0x05,
+    0xEC, 0x04, 0x87, 0xBB, 0xF4, 0x46, 0x0A, 0xA2
+};
 
 
 
@@ -65,7 +61,6 @@ int main(int argc, char *argv[])
     if (memcmp(Imitta,Imitta_Et,_GOST_Imitta_Size))
     {
         printf("Imitta test failed\r\n");
-       // return -1;
     } else
     {
         printf("Imitta test passed\r\n");
@@ -76,7 +71,6 @@ int main(int argc, char *argv[])
     if (memcmp(Data_C_S_Et,Data_E,sizeof(Data_E)))
     {
         printf("Simple replacement encryption test failed\r\n");
-        //return -1;
     } else
     {
         printf("Simple replacement encryption test passed\r\n");
@@ -85,7 +79,6 @@ int main(int argc, char *argv[])
     if (memcmp(Data_O,Data_E,sizeof(Data_E)))
     {
         printf("Simple replacement decryption test failed\r\n");
-        //return -1;
     } else
     {
      printf("Simple decryption test passed\r\n");
@@ -95,7 +88,13 @@ int main(int argc, char *argv[])
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
     GOST_Crypt_G_PS(Synchro,Gost_Table,GOST_Key_d);//Decrypt Synchro acording to standart
     GOST_Crypt_G_Data(Data_E,sizeof(Data_E),Synchro,Gost_Table,GOST_Key_d);
-
+    if (memcmp(Data_E,Data_C_G_Et,sizeof(Data_E)))
+    {
+        printf("Gamma encryption test failed\r\n");
+    } else
+    {
+        printf("Gamma encryption test passed\r\n");
+    }
 
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
     GOST_Crypt_G_PS(Synchro,Gost_Table,GOST_Key_d);//Decrypt Synchro acording to standart
@@ -103,21 +102,26 @@ int main(int argc, char *argv[])
     if (memcmp(Data_O,Data_E,sizeof(Data_E)))
     {
         printf("Gamma decryption test failed\r\n");
-        //return -1;
     } else
     {
         printf("Gamma decryption test passed\r\n");
     }
-
 //Gamma with feedback
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
     memcpy(Data_E,Data_O,sizeof(Data_O));
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Encrypt,Gost_Table,GOST_Key_d);
+    if (memcmp(Data_E,Data_C_GF_Et,sizeof(Data_E)))
+    {
+        printf("Gamma with feedback encryption test failed\r\n");
+    } else
+    {
+       printf("Gamma with feedback encryption test passed\r\n");
+    }
+
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Decrypt,Gost_Table,GOST_Key_d);
     if (memcmp(Data_O,Data_E,sizeof(Data_E)))
     {
         printf("Gamma with feedback decryption test failed\r\n");
-        //return -1;
     } else
     {
        printf("Gamma with feedback decryption test passed\r\n");

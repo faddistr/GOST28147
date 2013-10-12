@@ -3,7 +3,7 @@
 #include "gost.h"
 #define _SWAPW32(W) ((W>>24) | (W<<24) | ((W>>8)&0xFF00) | ((W<<8)&0xFF0000))
 #define _SWAP_GOST_Data_Part(_GD) _GD.half[_GOST_Data_Part_N2_Half]=_SWAPW32(_GD.half[_GOST_Data_Part_N2_Half]); _GD.half[_GOST_Data_Part_N1_Half]=_SWAPW32(_GD.half[_GOST_Data_Part_N1_Half]);
-#define min(x,y) (x>y?y:x)
+#define _Min(x,y) (x>y?y:x)
 //GOST basic Simple Step
 void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t GOST_Key, bool Last )
 {
@@ -40,7 +40,7 @@ void GOST_Crypt_Step(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t GOST_Ke
     }
 }
 
-//Basic 32-3 encryption algorithm of GOST
+//Basic 32-E encryption algorithm of GOST
 void GOST_Crypt_32_E_Cicle(GOST_Data_Part *DATA, uint8_t *GOST_Table, uint32_t *GOST_Key)
 {
     uint8_t k,j;
@@ -129,7 +129,7 @@ void GOST_Imitta(uint8_t *Open_Data,  uint8_t *Imitta, uint32_t Size, uint8_t *G
     GOST_Data_Part Open_Data_Prep;
     while(Size!=0)
     {
-        Cur_Part_Size=min(_GOST_Part_Size,Size);
+        Cur_Part_Size=_Min(_GOST_Part_Size,Size);
         Open_Data_Prep.half[_GOST_Data_Part_N2_Half]=0;
         Open_Data_Prep.half[_GOST_Data_Part_N1_Half]=0;
         memcpy(&Open_Data_Prep,Open_Data,Cur_Part_Size);
@@ -153,7 +153,7 @@ void GOST_Encrypt_SR(uint8_t *Data, uint32_t Size, bool Mode, uint8_t *GOST_Tabl
 
     while (Size!=0)
     {
-        Cur_Part_Size=min(_GOST_Part_Size,Size);
+        Cur_Part_Size=_Min(_GOST_Part_Size,Size);
         memset(&Data_prep,_GOST_Def_Byte,sizeof(Data_prep));
         memcpy(&Data_prep,Data,Cur_Part_Size);
 #if _GOST_ROT==1
@@ -209,7 +209,7 @@ void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *
         Tmp.half[_GOST_Data_Part_N2_Half]=_SWAPW32(Tmp.half[_GOST_Data_Part_N2_Half]);
         Tmp.half[_GOST_Data_Part_N1_Half]=_SWAPW32(Tmp.half[_GOST_Data_Part_N1_Half]);
 #endif
-        for (i=0;i<min(_GOST_Part_Size,Size);i++)
+        for (i=0;i<_Min(_GOST_Part_Size,Size);i++)
         {
             *Data^=Tmp.parts[i];
             Data++;
@@ -233,7 +233,7 @@ void GOST_Crypt_GF_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, bool Mod
         S_Prep.half[_GOST_Data_Part_N2_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N2_Half]);
         S_Prep.half[_GOST_Data_Part_N1_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N1_Half]);
 #endif
-        for (i=0;i<min(_GOST_Part_Size,Size);i++)//Data XOR S; S=Data;
+        for (i=0;i<_Min(_GOST_Part_Size,Size);i++)//Data XOR S; S=Data;
         {
             if (Mode==_GOST_Mode_Encrypt)
             {

@@ -204,8 +204,6 @@ void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *
         _GOST_ADC32((*S).half[_GOST_Data_Part_N2_Half],_GOST_C1,(*S).half[_GOST_Data_Part_N2_Half]);//_GOST_Data_Part_HiHalf
 
         Tmp=*S;
-
-
         GOST_Crypt_32_E_Cicle(&Tmp,GOST_Table,(uint32_t *)GOST_Key);
 #if _GOST_ROT==1
         Tmp.half[_GOST_Data_Part_N2_Half]=_SWAPW32(Tmp.half[_GOST_Data_Part_N2_Half]);
@@ -222,26 +220,37 @@ void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *
 
 void GOST_Crypt_GF_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, bool Mode, uint8_t *GOST_Table, uint8_t *GOST_Key )
 {
-    GOST_Data_Part S;
+    GOST_Data_Part *S=(GOST_Data_Part *)Synchro;
+    GOST_Data_Part S_Prep;
     uint8_t i,Tmp;
-    memcpy(&S,Synchro,_GOST_Synchro_Size);
+    S_Prep.half[_GOST_Data_Part_N2_Half]=(*S).half[_GOST_Data_Part_N1_Half];
+    S_Prep.half[_GOST_Data_Part_N1_Half]=(*S).half[_GOST_Data_Part_N2_Half];
     while(Size!=0)
     {
-        GOST_Crypt_32_E_Cicle(&S,GOST_Table,(uint32_t *)GOST_Key);//C32(S)
+
+        GOST_Crypt_32_E_Cicle(&S_Prep,GOST_Table,(uint32_t *)GOST_Key);//C32(S)
+#if _GOST_ROT==1
+        S_Prep.half[_GOST_Data_Part_N2_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N2_Half]);
+        S_Prep.half[_GOST_Data_Part_N1_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N1_Half]);
+#endif
         for (i=0;i<min(_GOST_Part_Size,Size);i++)//Data XOR S; S=Data;
         {
             if (Mode==_GOST_Mode_Encrypt)
             {
-                *Data^=S.parts[i];
-                S.parts[i]=*Data;
+                *Data^=S_Prep.parts[i];
+                S_Prep.parts[i]=*Data;
             } else
             {
                 Tmp=*Data;
-                *Data^=S.parts[i];
-                S.parts[i]=Tmp;
+                *Data^=S_Prep.parts[i];
+                S_Prep.parts[i]=Tmp;
             }
             Data++;
         }
+#if _GOST_ROT==1
+        S_Prep.half[_GOST_Data_Part_N2_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N2_Half]);
+        S_Prep.half[_GOST_Data_Part_N1_Half]=_SWAPW32(S_Prep.half[_GOST_Data_Part_N1_Half]);
+#endif
         Size-=i;
     }
 

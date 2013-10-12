@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
 //Gamma with feedback
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
     memcpy(Data_E,Data_O,sizeof(Data_O));
+    GOST_Crypt_GF_Prepare_S(Synchro);
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Encrypt,Gost_Table,GOST_Key_d);
     if (memcmp(Data_E,Data_C_GF_Et,sizeof(Data_E)))
     {
@@ -117,7 +118,8 @@ int main(int argc, char *argv[])
     {
        printf("Gamma with feedback encryption test passed\r\n");
     }
-
+    memcpy(Synchro,Synchro_Et,sizeof(Synchro));
+    GOST_Crypt_GF_Prepare_S(Synchro);
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Decrypt,Gost_Table,GOST_Key_d);
     if (memcmp(Data_O,Data_E,sizeof(Data_E)))
     {

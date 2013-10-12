@@ -202,14 +202,15 @@ void GOST_Crypt_G_Data(uint8_t *Data, uint32_t Size, uint8_t *Synchro, uint8_t *
     {
         (*S).half[_GOST_Data_Part_N1_Half]+=_GOST_C0;
         _GOST_ADC32((*S).half[_GOST_Data_Part_N2_Half],_GOST_C1,(*S).half[_GOST_Data_Part_N2_Half]);//_GOST_Data_Part_HiHalf
-#if _GOST_ROT==1
-        Tmp.half[_GOST_Data_Part_N2_Half]=_SWAPW32((*S).half[_GOST_Data_Part_N2_Half]);
-        Tmp.half[_GOST_Data_Part_N1_Half]=_SWAPW32((*S).half[_GOST_Data_Part_N1_Half]);
-#else
+
         Tmp=*S;
-#endif
+
 
         GOST_Crypt_32_E_Cicle(&Tmp,GOST_Table,(uint32_t *)GOST_Key);
+#if _GOST_ROT==1
+        Tmp.half[_GOST_Data_Part_N2_Half]=_SWAPW32(Tmp.half[_GOST_Data_Part_N2_Half]);
+        Tmp.half[_GOST_Data_Part_N1_Half]=_SWAPW32(Tmp.half[_GOST_Data_Part_N1_Half]);
+#endif
         for (i=0;i<min(_GOST_Part_Size,Size);i++)
         {
             *Data^=Tmp.parts[i];

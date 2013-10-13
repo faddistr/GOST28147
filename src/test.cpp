@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
         printf("Simple replacement decryption test failed\r\n");
     } else
     {
-     printf("Simple decryption test passed\r\n");
+        printf("Simple decryption test passed\r\n");
     }
 //Gamma
     memcpy(Data_E,Data_O,sizeof(Data_O));

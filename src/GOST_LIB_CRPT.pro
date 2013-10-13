@@ -21,3 +21,6 @@ SOURCES += \
 
 HEADERS += \
     gost.h
+
+OTHER_FILES += \
+    Doxyfile

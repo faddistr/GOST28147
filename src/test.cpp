@@ -26,11 +26,18 @@ uint8_t Data_O[24] = {
 uint8_t Imitta_Et[_GOST_Imitta_Size] ={
         0xD9, 0x8F, 0xEB, 0x04, 0x81, 0xF6, 0x2C, 0x41
 };
+#if _GOST_ROT_Synchro_GAMMA==1
 //synchro
 uint8_t Synchro_Et[_GOST_Synchro_Size] =
 {
     0xC3, 0xA7,0x80, 0x2A, 0x47, 0xE3, 0xA8, 0xFF
 };
+#else
+uint8_t Synchro_Et[_GOST_Synchro_Size] =
+{
+   0x47, 0xE3, 0xA8, 0xFF, 0xC3, 0xA7,0x80, 0x2A
+};
+#endif
 //Simple replacement
 uint8_t Data_C_S_Et[24] = {
     0x12, 0xA2, 0x8E, 0x60, 0x5D, 0x76, 0xBF, 0xC9, 0xAF, 0x84, 0x67, 0x8A, 0xA5, 0xE8, 0xF7, 0xE8,
@@ -109,7 +116,9 @@ int main(int argc, char *argv[])
 //Gamma with feedback
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
     memcpy(Data_E,Data_O,sizeof(Data_O));
+#if _GOST_ROT_Synchro_GAMMA==1
     GOST_Crypt_GF_Prepare_S(Synchro);
+#endif
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Encrypt,Gost_Table,GOST_Key_d);
     if (memcmp(Data_E,Data_C_GF_Et,sizeof(Data_E)))
     {
@@ -119,7 +128,9 @@ int main(int argc, char *argv[])
        printf("Gamma with feedback encryption test passed\r\n");
     }
     memcpy(Synchro,Synchro_Et,sizeof(Synchro));
+#if _GOST_ROT_Synchro_GAMMA==1
     GOST_Crypt_GF_Prepare_S(Synchro);
+#endif
     GOST_Crypt_GF_Data(Data_E,sizeof(Data_E),Synchro,_GOST_Mode_Decrypt,Gost_Table,GOST_Key_d);
     if (memcmp(Data_O,Data_E,sizeof(Data_E)))
     {
